@@ -25,8 +25,10 @@ export class App {
   }
 
   async load() {
-    const resp = await fetch("https://magsapi.onrender.com/api/diesel");
-    const data = await resp.json();
+    const respDiesel = await fetch("https://magsapi.onrender.com/api/diesel");
+    const data = await respDiesel.json();
+    const respBensin = await fetch("https://magsapi.onrender.com/api/miles95");
+    const dataBensin = await respBensin.json();
 
     // convert to datetime obj
     data.forEach((item) => {

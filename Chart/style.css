@@ -1,3 +1,26 @@
 * {
     box-sizing: border-box;
 }
+.header {
+    font-size: 70px;
+        font-weight: 600;
+        background-image: linear-gradient(to left, #dd1b1b, #c23d23);
+        color: transparent;
+        background-clip: text;
+        -webkit-background-clip: text;
+}
+
+#clickButton {
+    border-radius: 10px;
+    color: #ffffff;
+    transition: .2s linear;
+    background: #dd1b1b;
+    min-height: 40px;
+    min-width: 100px;
+}
+
+#clickButton:hover {
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #3C82F8;
+}
+
+
