@@ -2,80 +2,117 @@ import { parseDatetime } from "./utils.js";
 
 export class App {
   constructor(canvasTagName, timeFromName, timeToName) {
+    this.init(canvasTagName, timeFromName, timeToName);
+  }
+
+  async init(canvasTagName, timeFromName, timeToName) {
+    this.registerEvents(canvasTagName, timeFromName, timeToName);
+    await this.loadDatasets();
+    this.updateChart();
+  }
+
+  registerEvents(canvasTagName, timeFromName, timeToName) {
     this.canvasTag = document.getElementById(canvasTagName);
     this.timeFrom = document.getElementById(timeFromName);
     this.timeTo = document.getElementById(timeToName);
-    this.selectedData = [];
-
-    this.labelsToChart = [];
-    this.valuesToChart = [];
-
-    this.init();
-  }
-
-  async init() {
+    
     this.timeFrom.addEventListener("change", () => {
       this.updateChart();
     });
     this.timeTo.addEventListener("change", () => {
       this.updateChart();
     });
-    await this.load();
-    await this.createChart();
   }
 
-  async load() {
-    const respDiesel = await fetch("https://magsapi.onrender.com/api/diesel");
-    const data = await respDiesel.json();
-    const respBensin = await fetch("https://magsapi.onrender.com/api/miles95");
-    const dataBensin = await respBensin.json();
+  async loadDatasets() {
+    this.dataDiesel = await this.loadLink(
+      "https://magsapi.onrender.com/api/diesel"
+    );
+    this.dataGasoline = await this.loadLink(
+      "https://magsapi.onrender.com/api/miles95"
+    );
+  }
+
+  async loadLink(url) {
+    const resp = await fetch(url);
+    const data = await resp.json();
 
     // convert to datetime obj
     data.forEach((item) => {
       item.Date = parseDatetime(item.Date);
     });
 
-    this.data = data;
-    this.selectedData = this.data;
+    return data;
   }
 
-  async updateChart() {
-    await this.selectData();
-    await this.dataPreparing();
-    this.canvas.update("active");
-  }
-
-  async selectData() {
+  updateChart() {
     const timeFromDate = parseDatetime(this.timeFrom.value);
     const timeToDate = parseDatetime(this.timeTo.value);
 
-    this.selectedData = this.data.filter(
+    const selectedDieselData = this.dataDiesel.filter(
       (item) => item.Date >= timeFromDate && item.Date <= timeToDate
     );
+    const selectedGasolineData = this.dataGasoline.filter(
+      (item) => item.Date >= timeFromDate && item.Date <= timeToDate
+    );
+
+    const [dieselLabels, dieselValues] = this.dataPreparing(selectedDieselData);
+    const [gasolineLabels, gasolineValues] =
+      this.dataPreparing(selectedGasolineData);
+
+    this.createChart(dieselLabels, [
+      {
+        label: "Diesel price",
+        data: dieselValues,
+        borderWidth: 1,
+      },
+      {
+        label: "Gasoline price",
+        data: gasolineValues,
+        borderWidth: 1,
+      },
+    ]);
   }
 
-  async dataPreparing() {
-    this.labelsToChart = [];
-    this.valuesToChart = [];
+  dataPreparing(rawData) {
+    const labels = [];
+    const values = [];
 
-    for (const record of this.selectedData) {
-      this.valuesToChart.push(record.Price);
-      this.labelsToChart.push(record.Date);
+    //labels preparing
+    for (const record of rawData) {
+      const someDate = record.Date;
+      const day = String(someDate.getDate()).padStart(2, "0");
+      const month = String(someDate.getMonth() + 1).padStart(2, "0");
+      const year = someDate.getFullYear();
+      labels.push(`${day}-${month}-${year}`);
+
+      values.push(record.Price);
     }
+
+    return [labels, values];
   }
 
-  async createChart() {
+  createChart(labels, datasets) {
+    if (this.canvas != null) {
+      this.canvas.destroy();
+    }
     this.canvas = new Chart(this.canvasTag, {
       type: "line",
       data: {
-        labels: this.labelsToChart,
-        datasets: [
-          {
-            label: "Diesel price",
-            data: this.valuesToChart,
-            borderWidth: 1,
-          },
-        ],
+        labels: labels,
+        // datasets: [
+        //   {
+        //     label: "Diesel price",
+        //     data: this.shared.dieselValuesToChart,
+        //     borderWidth: 1,
+        //   },
+        //   {
+        //     label: "Gasoline price",
+        //     data: this.shared.gasolineValuesToChart,
+        //     borderWidth: 1,
+        //   },
+        // ],
+        datasets: datasets,
       },
       options: {
         scales: {
